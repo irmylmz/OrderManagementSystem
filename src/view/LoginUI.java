@@ -6,6 +6,10 @@ import java.awt.event.ActionListener;
 
 import javax.swing.*;
 
+import business.UserController;
+import core.Helper;
+import entity.User;
+
 
 public class LoginUI extends JFrame{
 	private JPanel container;
@@ -13,8 +17,10 @@ public class LoginUI extends JFrame{
     private JPasswordField txtPassword;
     private JButton btnLogin;
     private JLabel lblTitle;
+    private UserController userController;
 	
 	public LoginUI() {
+		this.userController = new UserController();
 		// container panel
         container = new JPanel(new GridBagLayout());
         this.setContentPane(container);
@@ -48,13 +54,27 @@ public class LoginUI extends JFrame{
         container.add(txtPassword, gc);
 
         // Login button
-        btnLogin = new JButton("Giriş Yap");
+        btnLogin = new JButton("Log in");
         gc.gridy = 3; gc.gridx = 0; gc.gridwidth = 2;
         gc.anchor = GridBagConstraints.CENTER;
         container.add(btnLogin, gc);
         
         btnLogin.addActionListener(e -> {
-        	
+        	JTextField[] checklist = {this.txtEmail, this.txtPassword};
+        	if(!Helper.isEmailValid(this.txtEmail.getText())) {
+        		Helper.showMessage("Please enter a valid email address.");    //System.out.println("Please enter a valid email address.");
+        	}else if(Helper.isFieldListEmpty(checklist)) {
+        		Helper.showMessage("fill");                                   //System.out.println("Please fill out all fields.");
+        	}else {
+        		User user = this.userController.findByLogin(txtEmail.getText(), txtPassword.getText());
+        		if(user == null) {
+        			Helper.showMessage("The user you entered could not be found.");
+        		}else {
+        			this.dispose();
+        			DashboardUI dashboardUI = new DashboardUI(user);
+        		}
+    
+        	}
         });
 
         // Frame ayarları

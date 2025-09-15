@@ -23,10 +23,14 @@ public class Database {
     String url = "jdbc:postgresql://" + host + ":" + port + "/" + name + "?sslmode=disable";
     
     private Database() {
-    	try (Connection connection = DriverManager.getConnection(url, user, pass)) {
-            System.out.println("✔ Bağlantı başarılı: " + connection.getMetaData().getURL());
+    	try {
+            // İSTENMİYOR: try-with-resources (bağlantıyı kapatır)
+            this.connection = DriverManager.getConnection(url, user, pass);
+            System.out.println("✔ Bağlantı başarılı: " + this.connection.getMetaData().getURL());
         } catch (SQLException e) {
             System.err.println("✖ Bağlantı hatası: " + e.getMessage());
+            // üst kata net hata verelim ki null connection ile devam edilmesin
+            throw new RuntimeException("DB connection failed", e);
         }
     }
     
