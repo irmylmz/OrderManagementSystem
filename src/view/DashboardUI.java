@@ -3,6 +3,8 @@ package view;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -109,6 +111,8 @@ public class DashboardUI extends JFrame {
         btnNew = new JButton("New");
         fg.gridx = col++;
         filterBar.add(btnNew, fg);
+        
+        loadCustomerButtonEvent();
 
         // Filtre barı customersPanel'e ekle (üst satır)
         cgc.gridx = 0; cgc.gridy = 0; cgc.weightx = 1; cgc.weighty = 0; cgc.fill = GridBagConstraints.HORIZONTAL;
@@ -160,6 +164,18 @@ public class DashboardUI extends JFrame {
 
         this.setVisible(true);
     }
+    
+    private void loadCustomerButtonEvent() {
+    	this.btnNew.addActionListener(e -> {
+    		CustomerUI customerUI = new CustomerUI(new Customer());
+    		customerUI.addWindowListener(new WindowAdapter() {
+    			@Override
+    			public void windowClosed(WindowEvent e) {
+    				loadCustomerTable(null);
+    			}
+			});
+    	});
+    }
 
     private void loadCustomerPopupMenu() {
         // Menü maddeleri
@@ -197,7 +213,30 @@ public class DashboardUI extends JFrame {
                 int selectId = Integer.parseInt(
                     tbl_customer.getValueAt(selectedRow, 0).toString()
                 );
-                System.out.println(selectId);
+                CustomerUI customerUI = new CustomerUI(this.customerController.getById(selectId));
+                customerUI.addWindowListener(new WindowAdapter() {
+        			@Override
+        			public void windowClosed(WindowEvent e) {
+        				loadCustomerTable(null);
+        			}
+    			});
+            }
+        });
+        
+        miDelete.addActionListener(e -> {
+            int selectedRow = tblCustomers.getSelectedRow();
+            if (selectedRow >= 0) {
+                int selectId = Integer.parseInt(
+                    tbl_customer.getValueAt(selectedRow, 0).toString()
+                );
+                if(Helper.confirm("sure")) {
+                	if(this.customerController.delete(selectId)) {
+                    	Helper.showMessage("done");
+                    	loadCustomerTable(null);
+                    }else {
+                    	Helper.showMessage("error");
+                    }
+                }
             }
         });
     }
@@ -210,7 +249,6 @@ public class DashboardUI extends JFrame {
         //((DefaultTableModel) tblCustomers.getModel()).setRowCount(0);                          İSTERSEN BUNU YAP
 
         for (Customer customer : customers) {
-            // enum TYPE ise:
             String typeText = (customer.getType() == null) ? "" : customer.getType().name();
             // String ise: String typeText = customer.getType();
 
