@@ -1,5 +1,6 @@
 package dao;
 
+import java.security.interfaces.RSAKey;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -103,6 +104,20 @@ private Connection connection;
 	    customer.setMail(rs.getString("mail"));
 	    customer.setAddress(rs.getString("address"));
 	    return customer;
+	}
+	
+	public ArrayList<Customer> query(String query){
+		ArrayList<Customer> customers = new ArrayList<Customer>();
+		try {
+			ResultSet re = this.connection.createStatement().executeQuery(query);
+			while(re.next()) {
+				customers.add(this.match(re));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return customers;
+		
 	}
 	
 	public ArrayList<Customer> findAll() {

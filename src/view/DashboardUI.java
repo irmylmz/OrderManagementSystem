@@ -5,6 +5,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
@@ -26,7 +27,7 @@ public class DashboardUI extends JFrame {
 
     // Üst filtre şeridi bileşenleri
     private JTextField txtCustomerName;
-    private JComboBox<String> cmbLabel;   // videodaki "Label" alanı (biz Type olarak kullanıyoruz)
+    private JComboBox<Customer.TYPE> cmbLabel;   
     private JButton btnSearch, btnClear, btnNew;
     private JPopupMenu popup_customer = new JPopupMenu();
 
@@ -91,9 +92,11 @@ public class DashboardUI extends JFrame {
 
         // "Label" (biz Type gibi kullanıyoruz)
         fg.gridx = col++; fg.weightx = 0; fg.fill = GridBagConstraints.NONE; fg.anchor = GridBagConstraints.LINE_START;
-        filterBar.add(new JLabel("Label"), fg);
+        filterBar.add(new JLabel("Type"), fg);
 
-        cmbLabel = new JComboBox<>(new String[]{"All", "Retail", "Corporate"});
+        //cmbLabel = new JComboBox<>(new String[]{"All", "Retail", "Corporate"});
+        cmbLabel = new JComboBox<>(Customer.TYPE.values());
+        cmbLabel.setSelectedItem(null);
         fg.gridx = col++; fg.weightx = 0.25; fg.fill = GridBagConstraints.HORIZONTAL;
         filterBar.add(cmbLabel, fg);
 
@@ -153,14 +156,7 @@ public class DashboardUI extends JFrame {
         loadCustomerTable(customerController.findAll());
         
         loadCustomerPopupMenu();
-        
-
-        // --- Basit davranışlar (placeholder)
-        btnClear.addActionListener(e -> {
-            txtCustomerName.setText("");
-            cmbLabel.setSelectedIndex(0);
-        });
-        // btnSearch / btnNew → ileride Controller/DAO ile bağlanır
+      
 
         this.setVisible(true);
     }
@@ -175,6 +171,20 @@ public class DashboardUI extends JFrame {
     			}
 			});
     	});
+    	
+    	this.btnSearch.addActionListener(e -> {
+    		ArrayList<Customer> filteredCustomers = this.customerController.filter(
+    				this.txtCustomerName.getText(), 
+    				(Customer.TYPE)this.cmbLabel.getSelectedItem()
+    				);
+    		loadCustomerTable(filteredCustomers);
+    	});
+    	
+    	this.btnClear.addActionListener(e -> {
+            loadCustomerTable(null);
+            this.txtCustomerName.setText(null);
+            this.cmbLabel.setSelectedItem(null);
+        });
     }
 
     private void loadCustomerPopupMenu() {
