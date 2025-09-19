@@ -5,16 +5,19 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 
+import business.BasketController;
 import business.CustomerController;
 import business.ProductController;
 import core.Helper;
 import core.Item;
+import entity.Basket;
 import entity.Customer;
 import entity.Product;
 import entity.User;
@@ -24,6 +27,7 @@ public class DashboardUI extends JFrame {
     private User user;
     private CustomerController customerController;
     private ProductController productController;
+    private BasketController basketController;
 
     // Tablo bileşenleri
     private DefaultTableModel tbl_customer;
@@ -46,11 +50,22 @@ public class DashboardUI extends JFrame {
 
     private JPopupMenu popup_product = new JPopupMenu();
     
+    // --- Basket tab bileşenleri (EKLE) ---
+    private DefaultTableModel tbl_basket;
+    private JTable tblBasket;
+
+    private JComboBox<Item> cmbBasketCustomer;
+    private JLabel lblBasketPrice;
+    private JLabel lblBasketCount;
+    private JButton btnBasketReset;
+    private JButton btnBasketCreate;
+    
 
     public DashboardUI(User user) {
         this.user = user;
         this.customerController = new CustomerController();
         this.productController = new ProductController();
+        this.basketController =  new BasketController();
         if (user == null) {
             Helper.showMessage("error");
             dispose();
@@ -96,6 +111,7 @@ public class DashboardUI extends JFrame {
         tabs.addTab("Customers", customersPanel);
         // Zaten var:
         tabs.addTab("Products", buildProductsPanel());
+        tabs.addTab("Basket", buildBasketPanel());   // EKLE
 
         // ---- 1) Filtre Şeridi (videodaki üst gri bar)
         JPanel filterBar = new JPanel(new GridBagLayout());
@@ -189,6 +205,7 @@ public class DashboardUI extends JFrame {
     			@Override
     			public void windowClosed(WindowEvent e) {
     				loadCustomerTable(null);
+    				loadBasketCustomerCombo();
     			}
 			});
     	});
@@ -249,6 +266,7 @@ public class DashboardUI extends JFrame {
         			@Override
         			public void windowClosed(WindowEvent e) {
         				loadCustomerTable(null);
+        				loadBasketCustomerCombo();
         			}
     			});
             }
@@ -264,6 +282,7 @@ public class DashboardUI extends JFrame {
                 	if(this.customerController.delete(selectId)) {
                     	Helper.showMessage("done");
                     	loadCustomerTable(null);
+                    	loadBasketCustomerCombo();
                     }else {
                     	Helper.showMessage("error");
                     }
@@ -382,7 +401,7 @@ public class DashboardUI extends JFrame {
 	    	        this.txtProductCode.getText(),
 	    	        (Item) this.cmbProductStock.getSelectedItem()
 	    	    );
-	    	    loadProductTable(filteredProducts);
+	    	    loadProductTable(null);
 	       
 	    });
         
@@ -408,10 +427,11 @@ public class DashboardUI extends JFrame {
 	    // Menü maddeleri
 	    JMenuItem miUpdate = new JMenuItem("Update");
 	    JMenuItem miDelete = new JMenuItem("Delete");
+	    JMenuItem miAddToBasket = new JMenuItem("Add to Cart"); 
 	    popup_product.add(miUpdate);
 	    popup_product.add(miDelete);
+	    popup_product.add(miAddToBasket); 
 
-	    // DOĞRU: Product tablosuna product popup bağla
 	    tblProducts.setComponentPopupMenu(popup_product);
 
 	    // Sağ tıkta altındaki satırı seç
@@ -434,10 +454,10 @@ public class DashboardUI extends JFrame {
 	    // Seçim modu (tek satır)
 	    tblProducts.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
+	    // === Update ===
 	    miUpdate.addActionListener(e -> {
 	        int viewRow = tblProducts.getSelectedRow();
 	        if (viewRow >= 0) {
-	            // Sorter açıksa güvenli: view -> model
 	            int modelRow = tblProducts.convertRowIndexToModel(viewRow);
 	            int selectId = Integer.parseInt(tbl_product.getValueAt(modelRow, 0).toString());
 
@@ -446,11 +466,13 @@ public class DashboardUI extends JFrame {
 	                @Override
 	                public void windowClosed(WindowEvent e2) {
 	                    loadProductTable(null);
+	                    loadBasketTable();
 	                }
 	            });
 	        }
 	    });
 
+	    // === Delete ===
 	    miDelete.addActionListener(e -> {
 	        int viewRow = tblProducts.getSelectedRow();
 	        if (viewRow >= 0) {
@@ -461,9 +483,33 @@ public class DashboardUI extends JFrame {
 	                if (this.productController.delete(selectId)) {
 	                    Helper.showMessage("done");
 	                    loadProductTable(null);
+	                    loadBasketTable();
 	                } else {
 	                    Helper.showMessage("error");
 	                }
+	            }
+	        }
+	    });
+
+	    // === Add to Cart ===
+	    miAddToBasket.addActionListener(e -> {
+	        int viewRow = tblProducts.getSelectedRow();
+	        if (viewRow >= 0) {
+	            int modelRow = tblProducts.convertRowIndexToModel(viewRow);
+	            int selectId = Integer.parseInt(tbl_product.getValueAt(modelRow, 0).toString());
+
+	            Product basketProduct = this.productController.getById(selectId);
+	            if (basketProduct.getStock() <= 0) {
+	                Helper.showMessage("This product is out of stock!");
+	            } else {
+	            	Basket basket = new Basket(basketProduct.getId());
+	            	if(this.basketController.save(basket)) {
+	            		Helper.showMessage("done");
+	            		loadBasketTable();
+	            		// Helper.showMessage("The product has been added to your cart: " + basketProduct.getName());
+	            	}else {
+	            		Helper.showMessage("error");
+	            	}
 	            }
 	        }
 	    });
@@ -476,6 +522,7 @@ public class DashboardUI extends JFrame {
 	            @Override
 	            public void windowClosed(WindowEvent e) {
 	                loadProductTable(null);
+	                loadBasketTable();
 	            }
 	        });
 	    });
@@ -487,7 +534,177 @@ public class DashboardUI extends JFrame {
 	        		(Item)cmbProductStock.getSelectedItem()
 	        		);
 	        loadProductTable(filteredProducts);
+	        
+	    });
+	}
+	private JPanel buildBasketPanel() {
+	    JPanel basketPanel = new JPanel(new GridBagLayout());
+	    basketPanel.setBorder(new TitledBorder("Create Basket"));
+	    GridBagConstraints bgc = new GridBagConstraints();
+	    bgc.insets = new Insets(8, 8, 8, 8);
+
+	    // === Üst bar ===
+	    JPanel topBar = new JPanel(new GridBagLayout());
+	    GridBagConstraints tg = new GridBagConstraints();
+	    tg.insets = new Insets(4, 6, 4, 6);
+	    tg.gridy = 0;
+
+	    int col = 0;
+
+	    // Müşteri seçimi
+	    tg.gridx = col++; tg.weightx = 0; tg.fill = GridBagConstraints.NONE; tg.anchor = GridBagConstraints.LINE_START;
+	    topBar.add(new JLabel("Choose Customer"), tg);
+
+	    cmbBasketCustomer = new JComboBox<>();
+	    for (Customer c : customerController.findAll()) {
+	        // Item(key=id, value=name)
+	        cmbBasketCustomer.addItem(new Item(c.getId(), c.getName()));
+	    }
+	    cmbBasketCustomer.setSelectedItem(null);
+	    tg.gridx = col++; tg.weightx = 0.4; tg.fill = GridBagConstraints.HORIZONTAL;
+	    topBar.add(cmbBasketCustomer, tg);
+
+	    // Toplam Tutar
+	    tg.gridx = col++; tg.weightx = 0; tg.fill = GridBagConstraints.NONE;
+	    topBar.add(new JLabel("Total Amount"), tg);
+
+	    lblBasketPrice = new JLabel("0 TL");
+	    tg.gridx = col++; tg.weightx = 0; tg.fill = GridBagConstraints.NONE;
+	    topBar.add(lblBasketPrice, tg);
+
+	    // Ürün Sayısı
+	    tg.gridx = col++; tg.weightx = 0; tg.fill = GridBagConstraints.NONE;
+	    topBar.add(new JLabel("Number of Products"), tg);
+
+	    lblBasketCount = new JLabel("0 Quantity");
+	    tg.gridx = col++; tg.weightx = 0; tg.fill = GridBagConstraints.NONE;
+	    topBar.add(lblBasketCount, tg);
+
+	    // Butonlar
+	    btnBasketReset = new JButton("Clear");
+	    tg.gridx = col++; tg.weightx = 0; tg.fill = GridBagConstraints.NONE;
+	    topBar.add(btnBasketReset, tg);
+
+	    btnBasketCreate = new JButton("Create Basket");
+	    tg.gridx = col++; tg.weightx = 0; tg.fill = GridBagConstraints.NONE;
+	    topBar.add(btnBasketCreate, tg);
+
+	    // Üst barı panele ekle
+	    bgc.gridx = 0; bgc.gridy = 0; bgc.weightx = 1; bgc.weighty = 0; bgc.fill = GridBagConstraints.HORIZONTAL;
+	    basketPanel.add(topBar, bgc);
+
+	    // === Tablo ===
+	    String[] cols = {"ID", "Product", "Code", "Price"};
+	    tbl_basket = new DefaultTableModel(cols, 0) {
+	        @Override public boolean isCellEditable(int r, int c) { return false; }
+	    };
+	    tblBasket = new JTable(tbl_basket);
+	    tblBasket.setFillsViewportHeight(true);
+	    tblBasket.getTableHeader().setReorderingAllowed(false);
+	    tblBasket.getColumnModel().getColumn(0).setMaxWidth(60);
+	    tblBasket.setAutoCreateRowSorter(true);
+
+	    JScrollPane sp = new JScrollPane(tblBasket);
+	    bgc.gridx = 0; bgc.gridy = 1; bgc.gridwidth = 1;
+	    bgc.weightx = 1; bgc.weighty = 1; bgc.fill = GridBagConstraints.BOTH;
+	    basketPanel.add(sp, bgc);
+
+	    loadBasketTable();
+	    loadBasketButtonEvent();
+	    loadBasketCustomerCombo();
+	    
+	    return basketPanel;
+	}
+	
+	private void loadBasketCustomerCombo() {
+		ArrayList<Customer> customers = this.customerController.findAll();
+		this.cmbBasketCustomer.removeAllItems();
+		for(Customer customer : customers) {
+			int comboKey = customer.getId();
+			String comboValue = customer.getName();
+			this.cmbBasketCustomer.addItem(new Item(comboKey, comboValue));
+		}
+		this.cmbBasketCustomer.setSelectedItem(null);
+	}
+	
+	private void loadBasketTable() {
+	    tbl_basket.setRowCount(0);
+	    try {
+	        List<Basket> rows = basketController.findAll();
+	        BigDecimal totalPrice = BigDecimal.ZERO;
+	        int totalCount = 0;
+
+	        for (Basket b : rows) {
+	            Product p = b.getProduct();
+	            if (p != null) {
+	                tbl_basket.addRow(new Object[]{
+	                        b.getId(),
+	                        p.getName(),
+	                        p.getCode(),
+	                        p.getPrice()
+	                });
+	                totalPrice = totalPrice.add(p.getPrice());
+	                totalCount++;
+	            }
+	        }
+	        this.lblBasketPrice.setText(totalPrice + " TL");
+	        this.lblBasketCount.setText(totalCount + " Adet");
+
+	    } catch (Exception ex) {
+	        ex.printStackTrace();
+	    }
+	    updateBasketTotals(); 
+	}
+	
+	private void loadBasketButtonEvent() {
+		btnBasketCreate.addActionListener(e -> {
+	        Item selected = (Item) cmbBasketCustomer.getSelectedItem();
+	        if (selected == null) {
+	            Helper.showMessage("Please choose the costomer!");
+	            return;
+	        }
+	        if (tbl_basket.getRowCount() == 0) {
+	            Helper.showMessage("The basket is empty!");
+	            return;
+	        }
+	        int customerId = selected.getKey();
+	        // Burada kendi sipariş oluşturma akışını çağır:
+	        // boolean ok = orderController.createOrder(customerId);
+	        // Şimdilik sadece bilgi mesajı:
+	        Helper.showMessage("Sipariş alındı. Customer ID: " + customerId);
+	        // İstersen sepeti sıfırla:
+	        // basketController.clear();
+	        tbl_basket.setRowCount(0);
+	        updateBasketTotals();
+	    });
+		
+		btnBasketReset.addActionListener(e -> {
+	        if(this.basketController.clear()) {
+	        	Helper.showMessage("done");
+	        	loadBasketTable();
+	        }else {
+	        	Helper.showMessage("error");
+	        }
+	        tbl_basket.setRowCount(0);
+	        updateBasketTotals();
 	    });
 	}
 	
+	private void updateBasketTotals() {
+	    int count = tbl_basket.getRowCount();
+	    lblBasketCount.setText(count + " Adet");
+
+	    java.math.BigDecimal total = java.math.BigDecimal.ZERO;
+	    for (int i = 0; i < count; i++) {
+	        Object priceObj = tbl_basket.getValueAt(i, 3);
+	        if (priceObj instanceof java.math.BigDecimal) {
+	            total = total.add((java.math.BigDecimal) priceObj);
+	        } else if (priceObj != null) {
+	            try {
+	                total = total.add(new java.math.BigDecimal(priceObj.toString()));
+	            } catch (NumberFormatException ignore) { }
+	        }
+	    }
+	    lblBasketPrice.setText(total + " TL");
+	}
 }
