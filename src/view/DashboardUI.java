@@ -12,14 +12,17 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 
 import business.CustomerController;
+import business.ProductController;
 import core.Helper;
 import entity.Customer;
+import entity.Product;
 import entity.User;
 
 public class DashboardUI extends JFrame {
     private JPanel container;
     private User user;
     private CustomerController customerController;
+    private ProductController productController;
 
     // Tablo bileşenleri
     private DefaultTableModel tbl_customer;
@@ -30,10 +33,23 @@ public class DashboardUI extends JFrame {
     private JComboBox<Customer.TYPE> cmbLabel;   
     private JButton btnSearch, btnClear, btnNew;
     private JPopupMenu popup_customer = new JPopupMenu();
+    
+    // === Product tab bileşenleri ===
+    private DefaultTableModel tbl_product;
+    private JTable tblProducts;
+
+    private JTextField txtProductName;
+    private JTextField txtProductCode;
+    private JComboBox<String> cmbProductStock; // All / In stock / Out of stock
+    private JButton btnProductSearch, btnProductClear, btnProductNew;
+
+    private JPopupMenu popup_product = new JPopupMenu();
+    
 
     public DashboardUI(User user) {
         this.user = user;
         this.customerController = new CustomerController();
+        this.productController = new ProductController();
         if (user == null) {
             Helper.showMessage("error");
             dispose();
@@ -72,6 +88,13 @@ public class DashboardUI extends JFrame {
         customersPanel.setBorder(new TitledBorder("Customers"));
         GridBagConstraints cgc = new GridBagConstraints();
         cgc.insets = new Insets(8, 8, 8, 8);
+        
+        JTabbedPane tabs = new JTabbedPane();
+        container.add(tabs, BorderLayout.CENTER);
+        // EKLE ️
+        tabs.addTab("Customers", customersPanel);
+        // Zaten var:
+        tabs.addTab("Products", buildProductsPanel());
 
         // ---- 1) Filtre Şeridi (videodaki üst gri bar)
         JPanel filterBar = new JPanel(new GridBagLayout());
@@ -142,8 +165,6 @@ public class DashboardUI extends JFrame {
         cgc.weightx = 1; cgc.weighty = 1; cgc.fill = GridBagConstraints.BOTH;
         customersPanel.add(sp, cgc);
 
-        container.add(customersPanel, BorderLayout.CENTER);
-
         // Frame ayarları
         this.setTitle("Customer Management System - Dashboard");
         this.setSize(1000, 600);
@@ -156,7 +177,6 @@ public class DashboardUI extends JFrame {
         loadCustomerTable(customerController.findAll());
         
         loadCustomerPopupMenu();
-      
 
         this.setVisible(true);
     }
@@ -272,4 +292,192 @@ public class DashboardUI extends JFrame {
             });
         }
     }
+	
+	private JPanel buildProductsPanel() {
+	    JPanel productsPanel = new JPanel(new GridBagLayout());
+	    productsPanel.setBorder(new TitledBorder("Products"));
+	    GridBagConstraints pgc = new GridBagConstraints();
+	    pgc.insets = new Insets(8, 8, 8, 8);
+
+	    // ------ Üst filtre şeridi ------
+	    JPanel filterBar = new JPanel(new GridBagLayout());
+	    GridBagConstraints fg = new GridBagConstraints();
+	    fg.insets = new Insets(4, 6, 4, 6);
+	    fg.gridy = 0;
+
+	    int col = 0;
+
+	    // Ürün Adı
+	    fg.gridx = col++; fg.weightx = 0; fg.fill = GridBagConstraints.NONE; fg.anchor = GridBagConstraints.LINE_START;
+	    filterBar.add(new JLabel("Product Name"), fg);
+
+	    txtProductName = new JTextField(16);
+	    fg.gridx = col++; fg.weightx = 0.4; fg.fill = GridBagConstraints.HORIZONTAL;
+	    filterBar.add(txtProductName, fg);
+
+	    // Ürün Kodu
+	    fg.gridx = col++; fg.weightx = 0; fg.fill = GridBagConstraints.NONE; fg.anchor = GridBagConstraints.LINE_START;
+	    filterBar.add(new JLabel("Product Code"), fg);
+
+	    txtProductCode = new JTextField(14);
+	    fg.gridx = col++; fg.weightx = 0.25; fg.fill = GridBagConstraints.HORIZONTAL;
+	    filterBar.add(txtProductCode, fg);
+
+	    // Stok Durumu
+	    fg.gridx = col++; fg.weightx = 0; fg.fill = GridBagConstraints.NONE; fg.anchor = GridBagConstraints.LINE_START;
+	    filterBar.add(new JLabel("Stock"), fg);
+
+	    cmbProductStock = new JComboBox<>(new String[]{"", "In stock", "Out of stock"}); // boş = seçili gelmesin
+	    fg.gridx = col++; fg.weightx = 0.25; fg.fill = GridBagConstraints.HORIZONTAL;
+	    filterBar.add(cmbProductStock, fg);
+
+	    // Butonlar
+	    btnProductSearch = new JButton("Search");
+	    fg.gridx = col++; fg.weightx = 0; fg.fill = GridBagConstraints.NONE;
+	    filterBar.add(btnProductSearch, fg);
+
+	    btnProductClear = new JButton("Clear");
+	    fg.gridx = col++;
+	    filterBar.add(btnProductClear, fg);
+
+	    btnProductNew = new JButton("Add New");
+	    fg.gridx = col++;
+	    filterBar.add(btnProductNew, fg);
+
+	    // Filtre barı ekle
+	    pgc.gridx = 0; pgc.gridy = 0; pgc.weightx = 1; pgc.weighty = 0; pgc.fill = GridBagConstraints.HORIZONTAL;
+	    productsPanel.add(filterBar, pgc);
+
+	    // ------ Tablo ------
+	    String[] cols = {"ID", "Name", "Code", "Price", "Stock"};
+	    tbl_product = new DefaultTableModel(cols, 0) {
+	        @Override public boolean isCellEditable(int r, int c) { return false; }
+	    };
+
+	    tblProducts = new JTable(tbl_product);
+	    tblProducts.setFillsViewportHeight(true);
+	    tblProducts.getTableHeader().setReorderingAllowed(false);
+	    tblProducts.getColumnModel().getColumn(0).setMaxWidth(60);
+	    tblProducts.setAutoCreateRowSorter(true);
+
+	    JScrollPane sp = new JScrollPane(tblProducts);
+	    pgc.gridx = 0; pgc.gridy = 1; pgc.gridwidth = 1;
+	    pgc.weightx = 1; pgc.weighty = 1; pgc.fill = GridBagConstraints.BOTH;
+	    productsPanel.add(sp, pgc);
+	    
+	    loadProductTable(productController.findAll());
+        loadProductPopupMenu();
+        loadProductButtonEvent();
+        
+
+	    // ------ Basit davranışlar ------
+	    btnProductClear.addActionListener(e -> {
+	        txtProductName.setText(null);
+	        txtProductCode.setText(null);
+	        cmbProductStock.setSelectedIndex(0);
+	    });
+
+	    btnProductSearch.addActionListener(e -> {
+	        
+	    });
+
+	    btnProductNew.addActionListener(e -> {
+	        
+	    });
+        
+	    return productsPanel;
+	}
+	
+	private void loadProductTable(List<Product> products) {
+	    tbl_product.setRowCount(0);
+	    if (products == null) products = productController.findAll();
+
+	    for (Product p : products) {
+	        tbl_product.addRow(new Object[]{
+	                p.getId(),
+	                p.getName(),
+	                p.getCode(),
+	                p.getPrice(),   // BigDecimal
+	                p.getStock()
+	        });
+	    }
+	}
+	
+	private void loadProductPopupMenu() {
+	    // Menü maddeleri
+	    JMenuItem miUpdate = new JMenuItem("Update");
+	    JMenuItem miDelete = new JMenuItem("Delete");
+	    popup_product.add(miUpdate);
+	    popup_product.add(miDelete);
+
+	    // DOĞRU: Product tablosuna product popup bağla
+	    tblProducts.setComponentPopupMenu(popup_product);
+
+	    // Sağ tıkta altındaki satırı seç
+	    MouseAdapter selector = new MouseAdapter() {
+	        private void maybeSelect(MouseEvent e) {
+	            if (e.isPopupTrigger()) {
+	                int row = tblProducts.rowAtPoint(e.getPoint()); // DOĞRU TABLO
+	                if (row >= 0 && row < tblProducts.getRowCount()) {
+	                    tblProducts.setRowSelectionInterval(row, row);
+	                } else {
+	                    tblProducts.clearSelection();
+	                }
+	            }
+	        }
+	        @Override public void mousePressed(MouseEvent e)  { maybeSelect(e); }
+	        @Override public void mouseReleased(MouseEvent e) { maybeSelect(e); }
+	    };
+	    tblProducts.addMouseListener(selector);
+
+	    // Seçim modu (tek satır)
+	    tblProducts.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+	    miUpdate.addActionListener(e -> {
+	        int viewRow = tblProducts.getSelectedRow();
+	        if (viewRow >= 0) {
+	            // Sorter açıksa güvenli: view -> model
+	            int modelRow = tblProducts.convertRowIndexToModel(viewRow);
+	            int selectId = Integer.parseInt(tbl_product.getValueAt(modelRow, 0).toString());
+
+	            ProductUI productUI = new ProductUI(this.productController.getById(selectId));
+	            productUI.addWindowListener(new WindowAdapter() {
+	                @Override
+	                public void windowClosed(WindowEvent e2) {
+	                    loadProductTable(null);
+	                }
+	            });
+	        }
+	    });
+
+	    miDelete.addActionListener(e -> {
+	        int viewRow = tblProducts.getSelectedRow();
+	        if (viewRow >= 0) {
+	            int modelRow = tblProducts.convertRowIndexToModel(viewRow);
+	            int selectId = Integer.parseInt(tbl_product.getValueAt(modelRow, 0).toString());
+
+	            if (Helper.confirm("sure")) {
+	                if (this.productController.delete(selectId)) {
+	                    Helper.showMessage("done");
+	                    loadProductTable(null);
+	                } else {
+	                    Helper.showMessage("error");
+	                }
+	            }
+	        }
+	    });
+	}
+	
+	private void loadProductButtonEvent() {
+	    this.btnProductNew.addActionListener(e -> {
+	        ProductUI productUI = new ProductUI(new Product());
+	        productUI.addWindowListener(new WindowAdapter() {
+	            @Override
+	            public void windowClosed(WindowEvent e) {
+	                loadProductTable(null);
+	            }
+	        });
+	    });
+	}
+	
 }
