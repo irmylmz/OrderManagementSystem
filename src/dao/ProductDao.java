@@ -7,6 +7,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 
 import core.Database;
+import entity.Customer;
 import entity.Product;
 
 public class ProductDao {
@@ -101,6 +102,20 @@ private Connection connection;
 	        e.printStackTrace();
 	    }
 	    return product;
+	}
+	
+	public ArrayList<Product> query(String query){
+		ArrayList<Product> products = new ArrayList<Product>();
+		try {
+			ResultSet re = this.connection.createStatement().executeQuery(query);
+			while(re.next()) {
+				products.add(this.match(re));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+		return products;
+		
 	}
 
 }

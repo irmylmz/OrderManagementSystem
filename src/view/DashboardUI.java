@@ -14,6 +14,7 @@ import javax.swing.table.DefaultTableModel;
 import business.CustomerController;
 import business.ProductController;
 import core.Helper;
+import core.Item;
 import entity.Customer;
 import entity.Product;
 import entity.User;
@@ -40,7 +41,7 @@ public class DashboardUI extends JFrame {
 
     private JTextField txtProductName;
     private JTextField txtProductCode;
-    private JComboBox<String> cmbProductStock; // All / In stock / Out of stock
+    private JComboBox<Item> cmbProductStock; 
     private JButton btnProductSearch, btnProductClear, btnProductNew;
 
     private JPopupMenu popup_product = new JPopupMenu();
@@ -327,9 +328,13 @@ public class DashboardUI extends JFrame {
 	    fg.gridx = col++; fg.weightx = 0; fg.fill = GridBagConstraints.NONE; fg.anchor = GridBagConstraints.LINE_START;
 	    filterBar.add(new JLabel("Stock"), fg);
 
-	    cmbProductStock = new JComboBox<>(new String[]{"", "In stock", "Out of stock"}); // boş = seçili gelmesin
+	    cmbProductStock = new JComboBox<>();
+	    cmbProductStock.addItem(new Item(1, "In stock"));
+	    cmbProductStock.addItem(new Item(2, "Out of stock"));
+	    cmbProductStock.setSelectedItem(null);
 	    fg.gridx = col++; fg.weightx = 0.25; fg.fill = GridBagConstraints.HORIZONTAL;
 	    filterBar.add(cmbProductStock, fg);
+	    
 
 	    // Butonlar
 	    btnProductSearch = new JButton("Search");
@@ -372,17 +377,13 @@ public class DashboardUI extends JFrame {
 
 	    // ------ Basit davranışlar ------
 	    btnProductClear.addActionListener(e -> {
-	        txtProductName.setText(null);
-	        txtProductCode.setText(null);
-	        cmbProductStock.setSelectedIndex(0);
-	    });
-
-	    btnProductSearch.addActionListener(e -> {
-	        
-	    });
-
-	    btnProductNew.addActionListener(e -> {
-	        
+	    	ArrayList<Product> filteredProducts = this.productController.filter(
+	    	        this.txtProductName.getText(),
+	    	        this.txtProductCode.getText(),
+	    	        (Item) this.cmbProductStock.getSelectedItem()
+	    	    );
+	    	    loadProductTable(filteredProducts);
+	       
 	    });
         
 	    return productsPanel;
@@ -477,6 +478,15 @@ public class DashboardUI extends JFrame {
 	                loadProductTable(null);
 	            }
 	        });
+	    });
+	    
+	    this.btnProductSearch.addActionListener(e -> {
+	        ArrayList<Product> filteredProducts = this.productController.filter(
+	        		txtProductName.getText(),
+	        		txtProductCode.getText(),
+	        		(Item)cmbProductStock.getSelectedItem()
+	        		);
+	        loadProductTable(filteredProducts);
 	    });
 	}
 	
