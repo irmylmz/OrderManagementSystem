@@ -18,7 +18,7 @@ UI katmanı tamamen **Swing** ile manuel olarak yazılmıştır. Bu nedenle UI k
 
 ---
 
-## 🛠️ Teknolojiler
+## Teknolojiler
 - **Java 17+**  
 - **PostgreSQL 14+**  
 - **Eclipse IDE**  
@@ -27,7 +27,7 @@ UI katmanı tamamen **Swing** ile manuel olarak yazılmıştır. Bu nedenle UI k
 
 ---
 
-## ⚙️ Kurulum
+## Kurulum
 1. **Repository’yi klonlayın**  
    ```bash
    git clone https://github.com/username/OrderManagementSystem.git
