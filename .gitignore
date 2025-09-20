@@ -1,0 +1,17 @@
+/bin/
+/target/
+
+# Maven build output
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Env dosyası
+.env
