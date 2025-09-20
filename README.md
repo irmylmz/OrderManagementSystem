@@ -1,6 +1,6 @@
-# 📌 Order Management System (OMS)
+# Order Management System (OMS)
 
-## 📖 Proje Hakkında (Türkçe)
+## Proje Hakkında
 **Order Management System**, müşteri siparişlerini yönetmek için geliştirilmiş bir Java tabanlı masaüstü uygulamasıdır.  
 Uygulama; **PostgreSQL** veritabanı ile entegre çalışmakta ve sipariş, müşteri ve ürün yönetimini kapsamaktadır.  
 
@@ -9,7 +9,7 @@ UI katmanı tamamen **Swing** ile manuel olarak yazılmıştır. Bu nedenle UI k
 
 ---
 
-## 🚀 Özellikler
+## Özellikler
 - 📦 Sipariş ekleme, güncelleme ve silme  
 - 👤 Müşteri yönetimi  
 - 🏷️ Ürün yönetimi  
@@ -54,21 +54,21 @@ UI katmanı tamamen **Swing** ile manuel olarak yazılmıştır. Bu nedenle UI k
 
 ---
 
-## 🧑‍💻 Developer Notları
+## Developer Notları
 - Swing UI kodları **form designer** kullanılmadan yazıldığı için **karmaşık ve uzun görünebilir**.  
 - UI tarafında *refactor* yapılması önerilir (ör: `MVC` veya `Observer Pattern` entegrasyonu).  
 - PostgreSQL bağlantıları `DAO` katmanı üzerinden yönetilmektedir.  
 
 ---
 
-## 🔮 Gelecek İyileştirmeler
+## Gelecek İyileştirmeler
 - UI tarafında **JavaFX veya modern frameworklere geçiş**  
 - **ORM (Hibernate veya JPA)** entegrasyonu  
 - Daha modüler **katmanlı mimari**  
 
 ---
 
-## 📖 About the Project (English)
+## About the Project 
 **Order Management System** is a Java-based desktop application designed to manage customer orders.  
 It integrates with a **PostgreSQL** database and covers order, customer, and product management modules.  
 
@@ -77,7 +77,7 @@ UI layer is written entirely with **Swing** (manual implementation). This makes 
 
 ---
 
-## 🚀 Features
+## Features
 - 📦 Add, update, delete orders  
 - 👤 Manage customers  
 - 🏷️ Manage products  
@@ -86,7 +86,7 @@ UI layer is written entirely with **Swing** (manual implementation). This makes 
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 - **Java 17+**  
 - **PostgreSQL 14+**  
 - **Eclipse IDE**  
@@ -95,7 +95,7 @@ UI layer is written entirely with **Swing** (manual implementation). This makes 
 
 ---
 
-## ⚙️ Installation
+## Installation
 1. **Clone the repository**  
    ```bash
    git clone https://github.com/username/OrderManagementSystem.git
@@ -121,15 +121,14 @@ UI layer is written entirely with **Swing** (manual implementation). This makes 
 
 ---
 
-## 🧑‍💻 Developer Notes
+## Developer Notes
 - UI code is **manually written with Swing**, therefore looks more complex.  
 - Refactoring with **MVC pattern** or introducing **JavaFX** could improve maintainability.  
 - Database access is handled via **DAO layer**.  
 
 ---
 
-## 🔮 Future Improvements
+## Future Improvements
 - UI migration to **JavaFX** or modern UI frameworks  
 - ORM integration (Hibernate/JPA)  
 - Refactoring into a more modular **layered architecture**  
-# OrderManagementSystem
