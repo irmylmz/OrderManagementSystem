@@ -13,11 +13,13 @@ import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableModel;
 
 import business.BasketController;
+import business.CartController;
 import business.CustomerController;
 import business.ProductController;
 import core.Helper;
 import core.Item;
 import entity.Basket;
+import entity.Cart;
 import entity.Customer;
 import entity.Product;
 import entity.User;
@@ -28,6 +30,7 @@ public class DashboardUI extends JFrame {
     private CustomerController customerController;
     private ProductController productController;
     private BasketController basketController;
+    private CartController cartController;
 
     // Tablo bileşenleri
     private DefaultTableModel tbl_customer;
@@ -60,12 +63,17 @@ public class DashboardUI extends JFrame {
     private JButton btnBasketReset;
     private JButton btnBasketCreate;
     
+    // --- Orders (Cart) tab ---
+    private DefaultTableModel tmdl_cart;
+    private JTable tblCart;
+    
 
     public DashboardUI(User user) {
         this.user = user;
         this.customerController = new CustomerController();
         this.productController = new ProductController();
         this.basketController =  new BasketController();
+        this.cartController = new CartController();
         if (user == null) {
             Helper.showMessage("error");
             dispose();
@@ -112,6 +120,7 @@ public class DashboardUI extends JFrame {
         // Zaten var:
         tabs.addTab("Products", buildProductsPanel());
         tabs.addTab("Basket", buildBasketPanel());   // EKLE
+        tabs.addTab("Orders", buildOrdersPanel());
 
         // ---- 1) Filtre Şeridi (videodaki üst gri bar)
         JPanel filterBar = new JPanel(new GridBagLayout());
@@ -653,58 +662,112 @@ public class DashboardUI extends JFrame {
 	    } catch (Exception ex) {
 	        ex.printStackTrace();
 	    }
-	    updateBasketTotals(); 
+
 	}
 	
 	private void loadBasketButtonEvent() {
+		btnBasketReset.addActionListener(e -> {
+	        if(this.basketController.clear()) {
+	        	Helper.showMessage("done");
+	        	loadBasketTable();
+	        	loadProductTable(null);
+	        }else {
+	        	Helper.showMessage("error");
+	        }
+	        tbl_basket.setRowCount(0);
+	   
+	    });
+		
 		btnBasketCreate.addActionListener(e -> {
 	        Item selected = (Item) cmbBasketCustomer.getSelectedItem();
 	        if (selected == null) {
 	            Helper.showMessage("Please choose the costomer!");
 	            return;
-	        }
-	        if (tbl_basket.getRowCount() == 0) {
-	            Helper.showMessage("The basket is empty!");
-	            return;
-	        }
-	        int customerId = selected.getKey();
-	        // Burada kendi sipariş oluşturma akışını çağır:
-	        // boolean ok = orderController.createOrder(customerId);
-	        // Şimdilik sadece bilgi mesajı:
-	        Helper.showMessage("Sipariş alındı. Customer ID: " + customerId);
-	        // İstersen sepeti sıfırla:
-	        // basketController.clear();
-	        tbl_basket.setRowCount(0);
-	        updateBasketTotals();
-	    });
-		
-		btnBasketReset.addActionListener(e -> {
-	        if(this.basketController.clear()) {
-	        	Helper.showMessage("done");
-	        	loadBasketTable();
 	        }else {
-	        	Helper.showMessage("error");
+	        	Customer customer = this.customerController.getById(selected.getKey());
+	        	if (tbl_basket.getRowCount() == 0) {
+		            Helper.showMessage("The basket is empty!");
+		            return;
+		        }else {
+		        	int customerId = selected.getKey();
+			        CartUI cartUI = new CartUI(customer);
+			        cartUI.addWindowListener(new WindowAdapter() {
+			            @Override
+			            public void windowClosed(WindowEvent e) {
+			                loadBasketTable();
+			                loadProductTable(null);
+			                loadCartTable();
+			            }
+			        });
+			        tbl_basket.setRowCount(0);
+				}
+		        
 	        }
-	        tbl_basket.setRowCount(0);
-	        updateBasketTotals();
+	        
 	    });
 	}
 	
-	private void updateBasketTotals() {
-	    int count = tbl_basket.getRowCount();
-	    lblBasketCount.setText(count + " Adet");
+	private JPanel buildOrdersPanel() {
+	    JPanel ordersPanel = new JPanel(new GridBagLayout());
+	    ordersPanel.setBorder(new TitledBorder("Orders"));
+	    GridBagConstraints ogc = new GridBagConstraints();
+	    ogc.insets = new Insets(8, 8, 8, 8);
 
-	    java.math.BigDecimal total = java.math.BigDecimal.ZERO;
-	    for (int i = 0; i < count; i++) {
-	        Object priceObj = tbl_basket.getValueAt(i, 3);
-	        if (priceObj instanceof java.math.BigDecimal) {
-	            total = total.add((java.math.BigDecimal) priceObj);
-	        } else if (priceObj != null) {
-	            try {
-	                total = total.add(new java.math.BigDecimal(priceObj.toString()));
-	            } catch (NumberFormatException ignore) { }
-	        }
-	    }
-	    lblBasketPrice.setText(total + " TL");
+	    // Tablo – kolonlar: ID, Müşteri, Ürün, Fiyat, Tarih, Not
+	    String[] cols = {"ID", "Customer", "Product", "Price", "Order Date", "Note"};
+	    tmdl_cart = new DefaultTableModel(cols, 0) {
+	        @Override public boolean isCellEditable(int r, int c) { return false; }
+	    };
+
+	    tblCart = new JTable(tmdl_cart);
+	    tblCart.setFillsViewportHeight(true);
+	    tblCart.getTableHeader().setReorderingAllowed(false);
+	    tblCart.getColumnModel().getColumn(0).setMaxWidth(60);
+	    tblCart.setAutoCreateRowSorter(true);
+	    tblCart.setEnabled(false); // sadece görüntü
+
+	    JScrollPane sp = new JScrollPane(tblCart);
+	    ogc.gridx = 0; ogc.gridy = 0;
+	    ogc.weightx = 1; ogc.weighty = 1; ogc.fill = GridBagConstraints.BOTH;
+	    ordersPanel.add(sp, ogc);
+
+	    // ilk yükleme
+	    loadCartTable();
+
+	    return ordersPanel;
 	}
+	private void loadCartTable() {
+	    // Kolon başlıklarını tutarlı kıl (gerekirse)
+	    Object[] columnCart = {"ID", "Customer", "Product", "Price", "Order Date", "Note"};
+
+	    // veriyi getir
+	    ArrayList<Cart> carts = this.cartController.findAll();
+
+	    // tabloyu temizle
+	    DefaultTableModel clearModel = (DefaultTableModel) this.tblCart.getModel();
+	    clearModel.setRowCount(0);
+
+	    // (başlıkları yeniden set etmek istersen)
+	    this.tmdl_cart.setColumnIdentifiers(columnCart);
+
+	    // satırları ekle
+	    for (Cart cart : carts) {
+	        Object[] row = {
+	            cart.getId(),
+	            cart.getCustomer() != null ? cart.getCustomer().getName() : cart.getCustomerId(),
+	            cart.getProduct()  != null ? cart.getProduct().getName()  : cart.getProductId(),
+	            cart.getPrice(),
+	            cart.getDate(),   // LocalDate ise direkt yazılır; String istersen formatlayabilirsin
+	            cart.getNote()
+	        };
+	        this.tmdl_cart.addRow(row);
+	    }
+
+	    // küçük masaüstü iyileştirmeleri (istenirse)
+	    this.tblCart.setModel(tmdl_cart);
+	    this.tblCart.getTableHeader().setReorderingAllowed(false);
+	    this.tblCart.getColumnModel().getColumn(0).setMaxWidth(50);
+	    this.tblCart.setEnabled(false);
+	}
+	
 }

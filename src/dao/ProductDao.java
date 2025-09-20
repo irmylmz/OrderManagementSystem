@@ -11,7 +11,7 @@ import entity.Customer;
 import entity.Product;
 
 public class ProductDao {
-private Connection connection;
+	private Connection connection;
 	
 	public ProductDao() {
 		this.connection = Database.getInstance();
